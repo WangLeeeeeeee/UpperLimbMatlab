@@ -1,8 +1,8 @@
 clc;
 clear;
 %% 上肢运动学参数
-LenUpperarm = 0.3035*1000;
-LenForeArm = 0.135*1000;
+global LenUpperarm
+global LenForeArm
 
 %% DH法建立运动学模型 subs(T01,theta,pi/4)
 syms theta1;

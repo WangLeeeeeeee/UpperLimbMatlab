@@ -1,10 +1,27 @@
 clc;
 clear;
+
+global LenUpperarm
+global LenForeArm
+global B10
+global B20
+global B30
+global B40
+global B50
+global B60
+global U13
+global U23
+global U33
+global U43
+global U53
+global F14
+global F24
+
 %% 上肢运动学参数
 LenUpperarm = 0.3035*1000;
-LenForeArm = 0.135*1000;
+LenForeArm = 0.135*2*1000;
 
-%% 绳索节点坐标
+% 绳索节点坐标
 % 基座上六个绳索节点（相对于0坐标系）
 B10 = [-0.142,-0.030,0.033]*1000;
 B20 = [-0.142,0,0.033]*1000;
@@ -12,126 +29,100 @@ B30 = [-0.006,0.142,0.033]*1000;
 B40 = [0.006,0.142,0.033]*1000;
 B50 = [0.142,0,0.033]*1000;
 B60 = [0.142,-0.030,0.033]*1000;
-BArc0 = [0,0.142,0.033]*1000; % 为了绘制圆弧
 % 上臂四个绳索节点（相对于3坐标系）
 U13 = [0.1715,-0.030,0.125]*1000;
 U23 = [0.1715,0,0.125]*1000;
 U33 = [0.1715,0,-0.125]*1000;
 U43 = [0.1715,-0.030,-0.125]*1000;
 U53 = [0.1715,0,0.125]*1000;
-UArc3 = [0.1715,0.125,0]*1000; % 为了绘制圆弧
 % 前臂两个绳索节点（相对于4坐标系）
 F14 = [0.118,-0.118,0]*1000;
 F24 = [0.118,0.118,0]*1000;
-FArc4 = [0.118,0,0.118]*1000;
+
+for i=1:101
+    
+end
 
 %% 遍历工作空间
-the1_start = -50*pi/180;
-the1_end = 50*pi/180;
-the2_start = -45*pi/180;
-the2_end = 45*pi/180;
-the3_start = 0*pi/180;
-the3_end = 45*pi/180;
-the4_start = 0*pi/180;
-the4_end = 70*pi/180;
-space = zeros(3,10000000);
-i = 0;
-for the1_sp = the1_start:0.01:the1_end
-    for the2_sp = the2_start:0.01:the2_end
-        for the3_sp = the3_start:0.5:the3_end
-            for the4_sp = the4_start:0.5:the4_end
-                i = i + 1;
-                T01 = DH(0,0,0,the1_sp);
-                T12 = DH(0,-pi/2,0,the2_sp-pi/2);
-                T23 = DH(0,pi/2,0,the3_sp);
-                T34 = DH(LenUpperarm,-pi/2,0,the4_sp);
-                T45 = DH(LenForeArm,0,0,0);
-                T05 = T01*T12*T23*T34*T45;
-                space(1,i) = T05(1,4);
-                space(2,i) = T05(2,4);
-                space(3,i) = T05(3,4);
-            end
-        end
-    end
-end
-figure();
-scatter3(space(1,:), space(2,:), space(3,:),'b','filled');
-title('末端工作空间');
-xlabel('x/mm');
-ylabel('y/mm');
-zlabel('z/mm');
-grid on;
-hold on;
+thetaStart = [-50,-45,0,0]*pi/180;
+thetaEnd = [50,45,45,70]*pi/180;
+traverseWorkSpace(thetaStart,thetaEnd);
 
 %% 关节空间轨迹规划
-% 设定初始角度，终止角度，运行时间
-qStart = [0,0,0,0]*pi/180;
-qEnd = [10,20,20,60]*pi/180;
-qTf = 5;
-Theta = zeros(4,qTf/0.05+1);
-Omega = zeros(4,qTf/0.05+1);
-Beta = zeros(4,qTf/0.05+1);
-Pos = zeros(3,qTf/0.05+1);
-i = 0;
-for t=0:0.05:qTf
-    i = i + 1;
-    [Theta(1,i),Omega(1,i),Beta(1,i)]=CubicPolynomial(qStart(1),qEnd(1),qTf,t);
-    [Theta(2,i),Omega(2,i),Beta(2,i)]=CubicPolynomial(qStart(2),qEnd(2),qTf,t);
-    [Theta(3,i),Omega(3,i),Beta(3,i)]=CubicPolynomial(qStart(3),qEnd(3),qTf,t);
-    [Theta(4,i),Omega(4,i),Beta(4,i)]=CubicPolynomial(qStart(4),qEnd(4),qTf,t);
-    PlotUpperLimb([Theta(1,i),Theta(2,i),Theta(3,i),Theta(4,i)]);
-    drawnow();
-    T01 = DH(0,0,0,Theta(1,i));
-    T12 = DH(0,-pi/2,0,Theta(2,i)-pi/2);
-    T23 = DH(0,pi/2,0,Theta(3,i));
-    T34 = DH(LenUpperarm,-pi/2,0,Theta(4,i));
-    T45 = DH(LenForeArm,0,0,0);
-    T05 = T01*T12*T23*T34*T45;
-    Pos(1,i) = T05(1,4);
-    Pos(2,i) = T05(2,4);
-    Pos(3,i) = T05(3,4);
-end
-t=0:0.05:qTf;
-figure();
-scatter3(Pos(1,:), Pos(2,:), Pos(3,:),'b','filled');
-title('末端轨迹');
-xlabel('x/mm');
-ylabel('y/mm');
-zlabel('z/mm');
-grid on;
-hold on;
-
-figure();
-xlabel('s');
-ylabel('rad');
-title('关节角度变化');
-grid on;
-hold on;
-plot(t,Theta(1,:),'c',t,Theta(2,:),'m',t,Theta(3,:),'y',t,Theta(4,:),'r','LineWidth',2);
-legend('theta1','theta2','theta3','theta4');
-
-figure();
-xlabel('s');
-ylabel('rad/s');
-title('关节角速度变化');
-grid on;
-hold on;
-plot(t,Omega(1,:),'c',t,Omega(2,:),'m',t,Omega(3,:),'y',t,Omega(4,:),'r','LineWidth',2);
-legend('omega1','omega2','omega3','omega4');
-
-figure();
-xlabel('s');
-ylabel('rad/s^2');
-title('关节角加速度变化');
-grid on;
-hold on;
-plot(t,Beta(1,:),'c',t,Beta(2,:),'m',t,Beta(3,:),'y',t,Beta(4,:),'r','LineWidth',2);
-legend('Beta1','Beta2','Beta3','Beta4');
-
+% %设定初始角度，终止角度，运行时间
+% qStart = [0,0,0,0]*pi/180;
+% qEnd = [0,20,0,30]*pi/180;
+% qTf = 5;
+% qStep = 0.05;
+% [torque,JF_SH,JF_EL] = trajectoryPlanOnJoint(qStart,qEnd,qTf,qStep);
+% figure();
+% xlabel('s');
+% ylabel('N*mm');
+% title('关节力矩变化');
+% grid on;
+% plot(torque(1,:),'c','LineWidth',2);
+% hold on;
+% plot(torque(2,:),'m','LineWidth',2);
+% hold on;
+% plot(torque(3,:),'y','LineWidth',2);
+% hold on;
+% plot(torque(4,:),'r','LineWidth',2);
+% hold on;
+% legend('torque1','torque2','torque3','torque4');
+% 
+% %% 二次规划求解绳索张力
+% Tension = zeros(6,qTf/qStep+1);
+% % 肘关节
+% for kk=1:qTf/qStep
+%     H2 = eye(2); f2= zeros(2,1); Aeq_elbow = -JF_EL(:,:,kk); beq_elbow  = [0;0;torque(4,kk)] ; lb2 = 1 * ones(2,1); ub2 = 100*ones(2,1); x02 = 5 * ones(2,1);
+%     [TT_elbow,fval,exitflag] = quadprog(H2,f2,[],[],Aeq_elbow ,beq_elbow ,lb2,ub2,x02);
+%     Tension(5,kk)=TT_elbow(1);
+%     Tension(6,kk)=TT_elbow(2);
+% end
+% % 肩关节
+% for kk=1:qTf/qStep
+%     TorReq_GH=[torque(1,kk);torque(2,kk);torque(3,kk)];
+%     H1 = eye(4); f1= zeros(4,1); Aeq_GH = -JF_SH(:,:,kk); beq_GH = TorReq_GH; lb1 = 2 * ones(4,1); ub1 = 100*ones(4,1); x01 = 5 * ones(4,1);
+%     [TT_GH,fval,exitflag] = quadprog(H1,f1,[],[],Aeq_GH,beq_GH,lb1,ub1,x01);
+%     Tension(1,kk)=TT_GH(1);
+%     Tension(2,kk)=TT_GH(2);
+%     Tension(3,kk)=TT_GH(3);
+%     Tension(4,kk)=TT_GH(4);
+% %     result = Aeq_GH\beq_GH;
+% %     Tension(1,kk)=result(1);
+% %     Tension(2,kk)=result(2);
+% %     Tension(3,kk)=result(3);
+% %     Tension(4,kk)=result(4);
+% end
+% % 绳索张力变化曲线
+% figure();
+% subplot(2,1,1);
+% plot(Tension(1,1:end-1),'r','LineWidth',1.5);
+% hold on;
+% plot(Tension(2,1:end-1),'b','LineWidth',1.5);
+% hold on;
+% plot(Tension(3,1:end-1),'c','LineWidth',1.5);
+% hold on;
+% plot(Tension(4,1:end-1),'g','LineWidth',1.5);
+% title('shoulder module');
+% xlabel('time ( s )');
+% ylabel('cable tension ( N )');
+% legend('F1','F2','F3','F4');
+% grid on;
+% 
+% subplot(2,1,2);
+% plot(Tension(5,1:end-1),'m','LineWidth',1.5);
+% hold on;
+% plot(Tension(6,1:end-1),'k','LineWidth',1.5);
+% title('elbow module');
+% xlabel('time ( s )');
+% ylabel('cable tension ( N )');
+% legend('F5','F6');
+% grid on;
 
 %% 直线插补
 % 选定初始点，终止点，速度，加速度，插补点数（初始点选取的是theta1=theta2=theta3=theta4=0,终止点选取的是theta1=0,theta2=pi/6,theta3=pi/6,theta4=pi/3）
-q0 = [0,0,0,pi/12];
+q0 = [0;0;0;pi/60];
 T010 = DH(0,0,0,q0(1));
 T120 = DH(0,-pi/2,0,q0(2)-pi/2);
 T230 = DH(0,pi/2,0,q0(3));
@@ -141,7 +132,7 @@ T050 = T010*T120*T230*T340*T450;
 pos_start = T050;
 ps = pos_start(1:3,4); % 初始点位置
 os = pos_start(1:3,1:3); % 初始点姿态
-q1 = [0,0,pi/6,pi/4];
+q1 = [0,0,pi/6,pi/6];
 T011 = DH(0,0,0,q1(1));
 T121 = DH(0,-pi/2,0,q1(2)-pi/2);
 T231 = DH(0,pi/2,0,q1(3));
@@ -156,52 +147,46 @@ acc=100; % 加速度
 k=100; % 插补点数
 [R,p,t] = interpolation(pe,ps,oe,os,vel,acc,k);
 
+% 逆运动学求解角度
 q = zeros(4,k+1);
-q(:,1) = [0;0;0;pi/12];
+%q0 = [0;0;0;1]*pi/180;
+pos = zeros(3,101);
 for i=2:(k+1)
-    dq = [5;5;5;5]*pi/180;
-    Td = [R(:,:,i),p(:,i);zeros(1,3),1];
-    q(:,i) = q(:,i-1);
-    count = 0;
-    while (norm(dq)>0.0001 && count<200)
-        count = count + 1;
-        T01 = DH(0,0,0,q(1,i));
-        T12 = DH(0,-pi/2,0,q(2,i)-pi/2);
-        T23 = DH(0,pi/2,0,q(3,i));
-        T34 = DH(LenUpperarm,-pi/2,0,q(4,i));
-        T45 = DH(LenForeArm,0,0,0);
-        T05 = T01*T12*T23*T34*T45;
-        T(:,:,1) = T01;
-        T(:,:,2) = T12;
-        T(:,:,3) = T23;
-        T(:,:,4) = T34;
-        T(:,:,5) = T45;
-        dt = Td - T05;
-        [m,n]=size(dt);
-        if (m==4 && n==4)
-            v=[dt(3,2),-dt(3,1),dt(2,1)];
-            w=[dt(1,4),dt(2,4),dt(3,4)];
-            kesi=[w,v];
-        else
-            kesi=zeros(6,1);
-        end
-        DT = kesi;
-        J = Jacobi_dif(T);
-        Jp = pinv(J);
-        dq = Jp*DT.';
-        q(:,i) = dq + q(:,i);
-    end
+    q(:,i) = JacobiIK(R(:,:,i),p(:,i),q0);
+    q0 = q(:,i);
+    pos(:,i) = p(:,i);
+    hold on;
+    scatter3(pos(1,:),pos(2,:),pos(3,:),'r');
+    drawnow();
+    hold off;
+end
+hold on;
+scatter3(p(1,:),p(2,:),p(3,:),'r');
+
+length_Line = zeros(6,101);
+for i=1:(k+1)
+    length_Line(:,i) = CableLength(q(:,i));
 end
 
 % 输出关节角度曲线
 figure();
+subplot(2,1,1);
 xlabel('time/s');
 ylabel('angle of joint/rad');
 title('关节角度变化');
 grid on;
-hold on;
-plot(t,real(q(1,:)),'c',t,real(q(2,:)),'m',t,real(q(3,:)),'y',t,real(q(4,:)),'r','LineWidth',2);
+plot(t(2:end),real(q(1,2:end)),'c',t(2:end),real(q(2,2:end)),'m',t(2:end),real(q(3,2:end)),'y',t(2:end),real(q(4,2:end)),'r','LineWidth',2);
 legend('theta1','theta2','theta3','theta4');
+
+subplot(2,1,2);
+xlabel('time/s');
+ylabel('cable length/mm');
+title('绳长变化');
+grid on;
+plot(t(2:end),length_Line(1,2:end),'c',t(2:end),length_Line(2,2:end),'m',t(2:end),length_Line(3,2:end),'y',...
+    t(2:end),length_Line(4,2:end),'r',t(2:end),length_Line(5,2:end),'g',t(2:end),length_Line(6,2:end),'b','LineWidth',2);
+legend('len1','len2','len3','len4','len5','len6');
+
 
 % 正向运动学验证
 x = zeros(1,k+1);
@@ -220,140 +205,37 @@ for i=2:k+1
 end
 figure();
 scatter3(x(2:101), y(2:101), z(2:101),'k');
-hold on;
-scatter3(p(1,:),p(2,:),p(3,:),'r');
+%hold on;
+%scatter3(p(1,:),p(2,:),p(3,:),'r');
 title('带入关节角度值验证直线');
 xlabel('x/mm');
 ylabel('y/mm');
 zlabel('z/mm');
 view(-30,10);
 grid on;
-hold on;
+
+figure();
+scatter3(p(1,:),p(2,:),p(3,:),'r');
+title('插补直线');
+xlabel('x/mm');
+ylabel('y/mm');
+zlabel('z/mm');
+view(-30,10);
+grid on;
 
 %% 静力学即绳索张力转换到关节力矩
 q = [0,0,0,0];
+[JF_SH,JF_EL] = TensiontoTorque(q);
 
-figure();
-PlotUpperLimb(q);
-
-T01 = DH(0,0,0,q(1));
-T12 = DH(0,-pi/2,0,q(2)-pi/2);
-T23 = DH(0,pi/2,0,q(3));
-T34 = DH(LenUpperarm,-pi/2,0,q(4));
-T45 = DH(LenForeArm,0,0,0);
-T03 = T01*T12*T23;
-T04 = T01*T12*T23*T34;
-T05 = T01*T12*T23*T34*T45;
-
-%肩关节力雅可比(3坐标系)
-JF_SH = zeros(3,4);
-B13 = T03(1:3,1:3)*B10';
-B33 = T03(1:3,1:3)*B30';
-B43 = T03(1:3,1:3)*B40';
-B63 = T03(1:3,1:3)*B60';
-L1 = U13' - B13; L2 = U23' - B33; % cable vector
-L3 = U33' - B43; L4 = U43' - B63;
-l1 = norm(L1); l2 = norm(L2); % cable length
-l3 = norm(L3); l4 = norm(L4);
-u1 = L1/l1; u2 = L2/l2; % cable unit vector
-u3 = L3/l3; u4 = L4/l4;
-JF_SH(:,1) = cross(U13',u1);
-JF_SH(:,2) = cross(U23',u2);
-JF_SH(:,3) = cross(U33',u3);
-JF_SH(:,4) = cross(U43',u4);
-
-% 肘关节力雅可比（4坐标系）
-JF_EL = zeros(3,2);
-T40 = inv(T04);
-B24 = T40*[B20,1]';
-B54 = T40*[B50,1]';
-L5 = F14' - B24(1:3);
-L6 = F24' - B54(1:3);
-l5 = norm(L5); l6 = norm(L6);
-u5 = L5/l5; u6 = L6/l6;
-JF_EL(:,1) = cross(F14',u5);
-JF_EL(:,2) = cross(F24',u6);
-JF_EL(1,:) = zeros(1,2);
-JF_EL(2,:) = zeros(1,2);
 
 %% 动力学方程
-% 连杆质量
-mShoulder = 2;
-mElbow = 2;
 % 假设已经知道角度，角速度，角加速度
-q = [0,0,0,0];
-dq = [0,0,0,0];
-ddq = [0,0,0,0];
-T01 = DH(0,0,0,q(1,i));
-T12 = DH(0,-pi/2,0,q(2,i)-pi/2);
-T23 = DH(0,pi/2,0,q(3,i));
-T34 = DH(LenUpperarm,-pi/2,0,q(4,i));
-T45 = DH(LenForeArm,0,0,0);
-% 初始化
-R = cell(1,6);
-w = cell(1,6);
-dw = cell(1,6);
-f = cell(1,6);
-n = cell(1,6);
-dv = cell(1,6);
-dvc = cell(1,6);
-P = cell(1,6);
-Pc = cell(1,6);
-F = cell(1,6);
-I = cell(1,6);
-% 旋转矩阵
-R{1} = T01(1:3,1:3);
-R{2} = T12(1:3,1:3);
-R{3} = T23(1:3,1:3);
-R{4} = T34(1:3,1:3);
-R{5} = T45(1:3,1:3);
-dv{1} = [0;g;0]; % 考虑重力
-% 坐标系原点位移，用P{1}表示坐标系1与坐标系0原点位置关系，用P{2}表示坐标系2与坐标系1原点位置关系
-P{1} = [0;0;0];
-P{2} = [0;0;0];
-P{3} = [0;0;0];
-P{4} = [LenUpperarm;0;0];
-P{5} = [LenForeArm;0;0];
-% 每个连杆质心的位置矢量(Q:球关节三个自由度质心？)
-Pc{2} = [0;0;0];
-Pc{3} = [0;0;0];
-Pc{4} = [LenUpperarm/2;0;0];
-Pc{5} = [LenForeArm/2;0;0];
-% 惯性张量矩阵
-% 参考http://bbs.21ic.com/upfiles/img/20079/2007916104241639.pdf求均匀刚体的惯量
-rShoulder = 0.035*1000;
-rElbow = 
-Ish1 = mShoulder*rShoulder^2/2;
-I{2} = [0, 0, 0; 0, 0, 0; 0, 0, 0];
-I{3} = [0, 0, 0; 0, 0, 0; 0, 0, 0];
-I{4} = [0, 0, 0; 0, 0, 0; 0, 0, 0];
-I{5} = [0, 0, 0; 0, 0, 0; 0, 0, 0];
-% 底座不旋转
-w{1} = [0;0;0];
-dw{1} = [0;0;0];
-% 旋转关节
-dq{2} = [0;0;dq(1)];
-dq{3} = [0;0;dq(2)];
-dq{4} = [0;0;dq(3)];
-dq{5} = [0;0;dq(4)];
-% 末端执行器没有力
-f{6} = [0;0;0];
-n{6} = [0;0;0];
-% 外推计算各连杆速度和加速度i:0:1:n
-for i=1:4
-    w{i+1} = R{i}.'*w{i} + dq{i+1};
-    dw{i+1} = R{i}.'*dw{i} + cross(R{i}.'*w{i},dq{i+1}) + ddq{i+1};
-    dv{i+1}=R{i}.'*(cross(dw{i},P{i})+cross(w{i},cross(w{i},P{i}))+dv{i});
-    dvc{i+1}=cross(dw{i+1},Pc{i+1})+cross(w{i+1},cross(w{i+1},Pc{i+1}))+dv{i+1};
-    F{i+1}=m{i+1}*dvc{i+1};
-    N{i+1} = I{i+1}*dw{i} + cross(w{i},I{i+1})*w{i+1};
-end
+qLimb = [0,0,0,30]*pi/180;
+dqLimb = [0,0,0,0];
+ddqLimb = [0,0,0,0];
+torque = InverseDynamic(qLimb,dqLimb,ddqLimb);
 
-% 向内地推力，力矩 i=n:-1:1
-for i=5:-1:2
-    f{i} = R{i}*f{i+1}+F{i};
-    n{i} = N{i}+R{i}*n{i+1}+cross(Pc{i},F{i})+cross(P{i},R{i}*f{i+1});
-end
+clear global
 
 
 

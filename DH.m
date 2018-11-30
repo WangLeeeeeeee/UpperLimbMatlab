@@ -1,3 +1,4 @@
+% 根据连杆参数求变换矩阵
 function T = DH(a, alpha, d, theta)
 T = [cos(theta),-sin(theta),0,a;
      sin(theta)*cos(alpha),cos(theta)*cos(alpha),-sin(alpha),-sin(alpha)*d;
