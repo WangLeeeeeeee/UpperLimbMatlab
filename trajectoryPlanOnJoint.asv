@@ -36,6 +36,9 @@ for t=0:step:qTf
     Pos(2,i) = T05(2,4);
     Pos(3,i) = T05(3,4);
     [JF_SH(:,:,i),JF_EL(:,:,i)] = TensiontoTorque(Theta(:,i));
+    Theta(:,i)
+    Omega(:,i)
+    Beta(:,i)
     torque(:,i) = Dynamic(Theta(:,i),Omega(:,i),Beta(:,i));
     %torque(:,i) = InverseDynamic(Theta(:,i),Omega(:,i),Beta(:,i));
 end
@@ -94,10 +97,7 @@ title('肘关节模块');
 
 figure();
 plot(t,torque(1,:),'k',t,torque(2,:),'g',t,torque(3,:),'b',t,torque(4,:),'r','LineWidth',2);
-legend('\tau_1','\tau_2','\tau_3','\tau_4');
 xlabel('s');
-ylabel('N\cdotm');
-title('关节力矩');
 
 % figure();
 % plot(diff(length_Line(1,2:end)),diff(length_Line(2,2:end)),diff(length_Line(3,2:end)),diff(length_Line(4,2:end)),diff(length_Line(5,2:end)),diff(length_Line(6,2:end)));

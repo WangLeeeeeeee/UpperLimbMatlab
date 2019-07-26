@@ -1,11 +1,12 @@
 % 由角度，角速度，角加速度求关节力矩
 function torque = InverseDynamic(qLimb,dqLimb,ddqLimb)
 % 连杆质量
-mShoulder = 0.5;
-mElbow = 0.3;
+global mShoulder
+global mElbow
 % 上肢运动学参数
 global LenUpperarm
 global LenForeArm
+global g
 % 变换矩阵
 T01 = DH(0,0,0,qLimb(1));
 T12 = DH(0,-pi/2,0,qLimb(2)-pi/2);
@@ -34,7 +35,6 @@ R{2} = T12(1:3,1:3);
 R{3} = T23(1:3,1:3);
 R{4} = T34(1:3,1:3);
 R{5} = T45(1:3,1:3);
-g = 9.81; % 重力方向及大小
 dv{1} = [0;0;g]; % 考虑重力
 % 坐标系原点位移，用P{1}表示坐标系1与坐标系0原点位置关系，用P{2}表示坐标系2与坐标系1原点位置关系
 P{1} = [0;0;0];

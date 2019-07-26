@@ -9,7 +9,7 @@ q = q0;
 dq = [5;5;5;5]*pi/180;
 Td = [R,p;zeros(1,3),1];
 count = 0;
-while (norm(dq)>0.0001 && count<200)
+while (norm(dq)>0.001 && count<200)
     count = count + 1;
     T01 = DH(0,0,0,q(1));
     T12 = DH(0,-pi/2,0,q(2)-pi/2);
