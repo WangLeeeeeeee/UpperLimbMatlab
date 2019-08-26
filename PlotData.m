@@ -1,6 +1,39 @@
+%-------将采集到的数据计算实际刚度---------------
+
 %-------将采集到的数据绘制曲线--------------------
-clc;
-clear;
+% clc;
+% clear;
+num = xlsread("C:\Users\user\Desktop\动力学肩外展最小10N.xlsx"); % 注：文件路径太长会报错
+Tension_real = num(1:4774,1:6);
+angleElbow = num(1:751,7:9);
+angleShoulder = num(1:751,10:12);
+tension_x = 0:4773;
+angle_x = 0:750;
+t = 0:89;
+figure();
+subplot(2,3,1);
+plot(tension_x,Tension_real(:,1),'r',t,Tension(1,:),'b');
+ylim([0 30]);
+subplot(2,3,2);
+plot(tension_x,Tension_real(:,2),'r',t,Tension(2,:),'b');
+ylim([0 30]);
+subplot(2,3,3);
+plot(tension_x,Tension_real(:,3),'r',t,Tension(3,:),'b');
+ylim([0 30]);
+subplot(2,3,4);
+plot(tension_x,Tension_real(:,4),'r',t,Tension(4,:),'b');
+ylim([0 30]);
+subplot(2,3,5);
+plot(tension_x,Tension_real(:,5),'r',t,Tension(5,:),'b');
+ylim([0 30]);
+subplot(2,3,6);
+plot(tension_x,Tension_real(:,6),'r',t,Tension(6,:),'b');
+ylim([0 30]);
+
+plot(tension_x,Tension_real(:,1),'r',tension_x,Tension_real(:,2),'b',tension_x,Tension_real(:,3),'c',tension_x,Tension_real(:,4),'g','LineWidth',1.5);
+legend('F1','F2','F3','F4');
+
+%%
 % num = xlsread("test20181205.xlsx");
 % tension = num(1:7531,1:6);
 % angleElbow = num(:,7:9);
@@ -153,4 +186,68 @@ plot(K_ELBOW);
 legend('KEL');
 xlim([1900 2800]);
 
+windowSize1 = 10;
+a = 1;
+b1 = (1/windowSize1)*ones(1,windowSize1);
+y_1 = filter(b1,a,Tension_real);
+
+[x y] = ginput(1);
+
+%% 绘制张力实际值与理论值
+figure();
+subplot(2,3,1);
+plot(tension_x_1,Tension_sensor_modified(:,1),'r',time,Tension(1,:),'b');
+ylim([0 30]);
+xlabel('time/s');
+ylabel('T1/N');
+subplot(2,3,2);
+plot(tension_x_1,Tension_sensor_modified(:,2),'r',time,Tension(2,:),'b');
+ylim([0 30]);
+xlabel('time/s');
+ylabel('T2/N');
+subplot(2,3,3);
+plot(tension_x_1,Tension_sensor_modified(:,3),'r',time,Tension(3,:),'b');
+ylim([0 30]);
+xlabel('time/s');
+ylabel('T3/N');
+subplot(2,3,4);
+plot(tension_x_1,Tension_sensor_modified(:,4),'r',time,Tension(4,:),'b');
+ylim([0 30]);
+xlabel('time/s');
+ylabel('T4/N');
+subplot(2,3,5);
+plot(tension_x_1,Tension_sensor_modified(:,5),'r',time,Tension(5,:),'b');
+ylim([0 30]);
+xlabel('time/s');
+ylabel('T5/N');
+subplot(2,3,6);
+plot(tension_x_1,Tension_sensor_modified(:,6),'r',time,Tension(6,:),'b');
+ylim([0 30]);
+xlabel('time/s');
+ylabel('T6/N');
+
+%% 绘制两次实验刚度曲线（整合在一起）
+% 肩关节前屈
+figure();
+plot(time_k_desired,K_SH_Value_plot,'b',time_k_sensor,K_SH_Sensor_plot,'r','LineWidth',1.5);
+legend('Desired stiffness','Actual stiffness');
+xlabel('time/s');
+ylabel('stiffness of shoulder joint');
+figure();
+plot(time_k_desired,K_ELBOW_Value_plot,'b',time_k_sensor,K_ELBOW_Sensor_plot,'r','LineWidth',1.5);
+legend('Desired stiffness','Actual stiffness');
+xlabel('time/s');
+ylabel('stiffness of elbow joint');
+
+%% 绘制两次实验角度曲线（整合在一起）
+% 肩关节前屈
+plot(time,Shoulder_Qianqu_Angle,angle_x,Shoulder_Qianqu_3N,'--',angle_x,Shoulder_Qianqu_5N,'--','LineWidth',1.5);
+xlabel('time/s');
+ylabel('Shoulder joint flextion');
+legend('Desired position','Actual position with low stiffness','Actual position with high stiffness');
+
+plot(time,Shoulder_Waizhan_Angle,angle_x_2N,Shoulder_Waizhan_2N,'--',angle_x_10N,Shoulder_Waizhan_10N,'--','LineWidth',1.5);
+xlabel('time/s');
+ylabel('Shoulder joint flextion');
+legend('Desired position','Actual position with low stiffness','Actual position with high stiffness');
 

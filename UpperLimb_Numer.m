@@ -20,6 +20,7 @@ global U23
 global U33
 global U43
 global U53
+global U63
 global F14
 global F24
 global g
@@ -34,7 +35,7 @@ mElbow = 0.3;
 % 重力大小
 g = 9.81; 
 
-% 绳索节点坐标
+%% 绳索节点坐标
 % 基座上六个绳索节点（相对于0坐标系）
 B10 = [-0.142,-0.110,0.033];
 B20 = [-0.142,0,0.033];
@@ -52,61 +53,25 @@ U53 = [0.1715,0,0.125];
 F14 = [0.118,-0.118,0];
 F24 = [0.118,0.118,0];
 
-%% 采集到的传感器数据
-% number = 2666;
-% t = 1:number;
-% %t = 1:310;
-% data = xlsread("C:\Users\user\Desktop\20190506.xlsx");
-% tension = data(t,1:6);
-% angleElbow = data(t,7:9);
-% angleShoulder = data(t,10:12);
-% encoder = data(1:180,13:18);       
-% figure();
-% plot(tension);
-% figure();
-% plot(angleElbow);
-% figure();
-% plot(angleShoulder);
-% figure();
-% subplot(2,1,1);
-% plot(t,tension(:,5),t,tension(:,6));
-% legend("tension5","tension6");
-% subplot(2,1,2);
-% plot(t,angleElbow(:,3));
-% legend("elbow");
-% figure();
-% plotyy(t,tension(:,5),t,angleElbow(:,3));
-% 
-% %% 根据采集到的数据（绳5绳6的张力及肘关节角度）解算肘关节刚度
-% K_ELBOW = zeros(1,number);
-% for i=1:number
-%     q = [0,0,0,-angleElbow(i,3)*pi/180];
-%     [JF_SH,JF_EL] = TensiontoTorque(q);
-%     if tension(i,6)<0
-%         tension(i,6) = 0;
-%     end
-%     if tension(i,5)<0
-%         tension(i,5) = 0;
-%     end
-%     KCable_6 = nsu(tension(i,6));
-%     KCable_5 = nsu(tension(i,5));
-%     KCable_el = diag([KCable_5,KCable_6]);
-%     K_ELBOW(1,i) = JF_EL(3,:)*KCable_el*(JF_EL(3,:))';
-% end
+% %% 绳索节点坐标
+% % 基座上六个绳索节点（相对于0坐标系）
+% B10 = [-0.230,-0.1125,0.017];
+% B20 = [-0.230,0,0.017];
+% B30 = [-0.158,0.152,0.017];%z=0.02
+% B40 = [0.158,0.152,0.017];%z=0.02
+% B50 = [0.230,0,0.017]*1000;
+% B60 = [0.230,-0.1125,0.017];
+% % 上臂六个绳索节点（相对于3坐标系）
+% U13 = [0.165,-0.030,0.135];
+% U23 = [0.165,0.0197,0.154];
+% U33 = [0.165,0.0197,-0.154];
+% U43 = [0.165,-0.030,-0.135];
+% U53 = [0.165,0,0.155];
+% U63 = [0.165,0,-0.155];
+% % 前臂两个绳索节点（相对于4坐标系）
+% F14 = [0.122,-0.148,0];
+% F24 = [0.122,0.148,0];
 
-% theta = [0,0,0,0]*pi/180;
-% PlotUpperLimb(theta);
-
-% detaL5 = zeros(1,11);
-% k = 1;
-% % test no meaning 
-% for q=0:0.01:0.1
-%     theta = [0,0,0,q]*pi/180;
-%     length = CableLength(theta);
-%     detaL5(k) = length(5);
-%     k = k + 1;
-% end
-% detaL5 = detaL5 - detaL5(1);
 %% 遍历工作空间
 % thetaStart = [-50,-45,0,0]*pi/180;
 % thetaEnd = [50,45,45,70]*pi/180;
@@ -118,18 +83,22 @@ qStart = [0,0,0,0]*pi/180;
 qEnd = [0,25,0,0]*pi/180;
 qTf = 2;
 qStep = 0.05;
-[torque,JF_SH,JF_EL] = trajectoryPlanOnJoint(qStart,qEnd,qTf,qStep);
+[Theta,torque,JF_SH,JF_EL] = trajectoryPlanOnJoint(qStart,qEnd,qTf,qStep);
 %% 二次规划求解绳索张力
 Tension = zeros(6,qTf/qStep+1);
 % 肘关节
-for kk=1:qTf/qStep
+kk=0;
+for t=0:qStep:qTf
+    kk=kk+1;
     H2 = eye(2); f2= zeros(2,1); Aeq_elbow = -JF_EL(:,:,kk); beq_elbow  = [0;0;torque(4,kk)] ; lb2 = 2 * ones(2,1); ub2 = 100*ones(2,1); x02 = 5 * ones(2,1);
     [TT_elbow,fval,exitflag] = quadprog(H2,f2,[],[],Aeq_elbow ,beq_elbow ,lb2,ub2,x02);
     Tension(5,kk)=TT_elbow(1);
     Tension(6,kk)=TT_elbow(2);
 end
 % 肩关节
-for kk=1:qTf/qStep
+kk=0;
+for t=0:qStep:qTf
+    kk=kk+1;
     TorReq_GH=[torque(1,kk);torque(2,kk);torque(3,kk)];
     H1 = eye(4); f1= zeros(4,1); Aeq_GH = -JF_SH(:,:,kk); beq_GH = TorReq_GH; lb1 = 2 * ones(4,1); ub1 = 100*ones(4,1); x01 = 5 * ones(4,1);
     [TT_GH,fval,exitflag] = quadprog(H1,f1,[],[],Aeq_GH,beq_GH,lb1,ub1,x01);
@@ -140,14 +109,9 @@ for kk=1:qTf/qStep
 end
 % 绳索张力变化曲线
 figure();
+t=0:qStep:qTf;
 subplot(2,1,1);
-plot(Tension(1,1:end-1),'r','LineWidth',1.5);
-hold on;
-plot(Tension(2,1:end-1),'b','LineWidth',1.5);
-hold on;
-plot(Tension(3,1:end-1),'c','LineWidth',1.5);
-hold on;
-plot(Tension(4,1:end-1),'g','LineWidth',1.5);
+plot(t,Tension(1,:),'r',t,Tension(2,:),'b',t,Tension(3,:),'c',t,Tension(4,:),'g','LineWidth',1.5);
 title('shoulder module');
 xlabel('time ( s )');
 ylabel('cable tension ( N )');
@@ -155,135 +119,124 @@ legend('F1','F2','F3','F4');
 grid on;
 
 subplot(2,1,2);
-plot(Tension(5,1:end-1),'m','LineWidth',1.5);
-hold on;
-plot(Tension(6,1:end-1),'k','LineWidth',1.5);
+plot(t,Tension(5,:),'m',t,Tension(6,:),'k','LineWidth',1.5);
 title('elbow module');
 xlabel('time ( s )');
 ylabel('cable tension ( N )');
 legend('F5','F6');
 grid on;
 
+%% 刚度变化
+[K_ELBOW_Value,K_SH_Value] = Stiffness(Theta,Tension);
+
 %% 直线插补
-% 选定初始点，终止点，速度，加速度，插补点数（初始点选取的是theta1=theta2=theta3=theta4=0,终止点选取的是theta1=0,theta2=pi/6,theta3=pi/6,theta4=pi/3）
-q0 = [0;0;0;pi/60];
-T010 = DH(0,0,0,q0(1));
-T120 = DH(0,-pi/2,0,q0(2)-pi/2);
-T230 = DH(0,pi/2,0,q0(3));
-T340 = DH(LenUpperarm,-pi/2,0,q0(4));
-T450 = DH(LenForeArm,0,0,0);
-T050 = T010*T120*T230*T340*T450;
-pos_start = T050;
-ps = pos_start(1:3,4); % 初始点位置
-os = pos_start(1:3,1:3); % 初始点姿态
-q1 = [0,10,20,15]*pi/180;
-T011 = DH(0,0,0,q1(1));
-T121 = DH(0,-pi/2,0,q1(2)-pi/2);
-T231 = DH(0,pi/2,0,q1(3));
-T341 = DH(LenUpperarm,-pi/2,0,q1(4));
-T451 = DH(LenForeArm,0,0,0);
-T051 = T011*T121*T231*T341*T451;
-pos_end = T051;
-pe = pos_end(1:3,4); % 末端点位置
-oe = pos_end(1:3,1:3); % 末端点姿态
-vel=50; % 速度
-acc=100; % 加速度
-k=50; % 插补点数
-[R,p,t] = interpolation(pe,ps,oe,os,vel,acc,k);
-% t_interval = 0.1;
-% k = 20;
-% k_acc = 2;
-% [R,p,t] = interpolation_forQt(pe,ps,oe,os,t_interval,k_acc,k);
-
-% 逆运动学求解角度
-q = zeros(4,k+1);
-%q0 = [0;0;0;1]*pi/180;
-pos = zeros(3,101);
-for i=2:(k+1)
-    q(:,i) = JacobiIK(R(:,:,i),p(:,i),q0);
-    q0 = q(:,i);
-    pos(:,i) = p(:,i);
-    hold off;
-end
-hold on;
-h = plot3(p(1,:),p(2,:),p(3,:),'--b');
-h.LineWidth = 2;
-
-length_Line = zeros(6,k+1);
-for i=1:(k+1)
-    length_Line(:,i) = CableLength(q(:,i));
-end
-
-% 输出关节角度曲线
-figure();
-xlabel('时间/s');
-ylabel('关节角度/rad');
-title('关节角度变化');
-grid on;
-plot(t(2:end),real(q(1,2:end)),'k',t(2:end),real(q(2,2:end)),'g',t(2:end),real(q(3,2:end)),'b',t(2:end),real(q(4,2:end)),'r','LineWidth',2);
-legend('theta1','theta2','theta3','theta4');
-
-figure();
-subplot(1,2,1);
-plot(t(2:end),length_Line(1,2:end),'k',t(2:end),length_Line(2,2:end),'g',t(2:end),length_Line(3,2:end),'b',...
-    t(2:end),length_Line(4,2:end),'r','LineWidth',2);
-legend('L1','L2','L3','L4');
-xlabel('时间/s');
-ylabel('绳索长度/mm');
-title('肩关节模块');
-subplot(1,2,2);
-plot(t(2:end),length_Line(5,2:end),'g',t(2:end),length_Line(6,2:end),'b','LineWidth',2);
-legend('L5','L6');
-xlabel('时间/s');
-ylabel('绳索长度/mm');
-title('肘关节模块');
-
-% 正向运动学验证
-x = zeros(1,k+1);
-y = zeros(1,k+1);
-z = zeros(1,k+1);
-for i=2:k+1
-    T01 = DH(0,0,0,q(1,i));
-    T12 = DH(0,-pi/2,0,q(2,i)-pi/2);
-    T23 = DH(0,pi/2,0,q(3,i));
-    T34 = DH(LenUpperarm,-pi/2,0,q(4,i));
-    T45 = DH(LenForeArm,0,0,0);
-    AnsT05 = T01*T12*T23*T34*T45;
-    x(i) = AnsT05(1,4);
-    y(i) = AnsT05(2,4);
-    z(i) = AnsT05(3,4);
-end
-figure();
-scatter3(x(2:101), y(2:101), z(2:101),'k');
-%hold on;
-%scatter3(p(1,:),p(2,:),p(3,:),'r');
-title('带入关节角度值验证直线');
-xlabel('x/mm');
-ylabel('y/mm');
-zlabel('z/mm');
-view(-30,10);
-grid on;
-
-figure();
-scatter3(p(1,:),p(2,:),p(3,:),'r');
-title('插补直线');
-xlabel('x/mm');
-ylabel('y/mm');
-zlabel('z/mm');
-view(-30,10);
-grid on;
-
-%% 静力学即绳索张力转换到关节力矩
-% q = [0,0,0,0];
-% [JF_SH,JF_EL] = TensiontoTorque(q);
-
-
-%% 动力学方程
-% 假设已经知道角度，角速度，角加速度
-qLimb = [0,0,0,30]*pi/180;
-dqLimb = [0,0,0,0];
-ddqLimb = [0,0,0,0];
-torque = InverseDynamic(qLimb,dqLimb,ddqLimb);
+% % 选定初始点，终止点，速度，加速度，插补点数（初始点选取的是theta1=theta2=theta3=theta4=0,终止点选取的是theta1=0,theta2=pi/6,theta3=pi/6,theta4=pi/3）
+% q0 = [0;0;0;pi/60];
+% T010 = DH(0,0,0,q0(1));
+% T120 = DH(0,-pi/2,0,q0(2)-pi/2);
+% T230 = DH(0,pi/2,0,q0(3));
+% T340 = DH(LenUpperarm,-pi/2,0,q0(4));
+% T450 = DH(LenForeArm,0,0,0);
+% T050 = T010*T120*T230*T340*T450;
+% pos_start = T050;
+% ps = pos_start(1:3,4); % 初始点位置
+% os = pos_start(1:3,1:3); % 初始点姿态
+% q1 = [0,10,20,15]*pi/180;
+% T011 = DH(0,0,0,q1(1));
+% T121 = DH(0,-pi/2,0,q1(2)-pi/2);
+% T231 = DH(0,pi/2,0,q1(3));
+% T341 = DH(LenUpperarm,-pi/2,0,q1(4));
+% T451 = DH(LenForeArm,0,0,0);
+% T051 = T011*T121*T231*T341*T451;
+% pos_end = T051;
+% pe = pos_end(1:3,4); % 末端点位置
+% oe = pos_end(1:3,1:3); % 末端点姿态
+% vel=50; % 速度
+% acc=100; % 加速度
+% k=100; % 插补点数
+% [R,p,t] = interpolation(pe,ps,oe,os,vel,acc,k);
+% % t_interval = 0.1;
+% % k = 20;
+% % k_acc = 2;
+% % [R,p,t] = interpolation_forQt(pe,ps,oe,os,t_interval,k_acc,k);
+% 
+% % 逆运动学求解角度
+% q = zeros(4,k+1);
+% %q0 = [0;0;0;1]*pi/180;
+% pos = zeros(3,101);
+% for i=2:(k+1)
+%     q(:,i) = JacobiIK(R(:,:,i),p(:,i),q0);
+%     q0 = q(:,i);
+%     pos(:,i) = p(:,i);
+%     hold off;
+% end
+% hold on;
+% h = plot3(p(1,:),p(2,:),p(3,:),'--b');
+% h.LineWidth = 2;
+% 
+% length_Line = zeros(6,k+1);
+% for i=1:(k+1)
+%     length_Line(:,i) = CableLength(q(:,i));
+% end
+% 
+% % 输出关节角度曲线
+% figure();
+% xlabel('时间/s');
+% ylabel('关节角度/rad');
+% title('关节角度变化');
+% grid on;
+% plot(t(2:end),real(q(1,2:end)),'k',t(2:end),real(q(2,2:end)),'g',t(2:end),real(q(3,2:end)),'b',t(2:end),real(q(4,2:end)),'r','LineWidth',2);
+% legend('theta1','theta2','theta3','theta4');
+% 
+% figure();
+% subplot(1,2,1);
+% plot(t(2:end),length_Line(1,2:end),'k',t(2:end),length_Line(2,2:end),'g',t(2:end),length_Line(3,2:end),'b',...
+%     t(2:end),length_Line(4,2:end),'r','LineWidth',2);
+% legend('L1','L2','L3','L4');
+% xlabel('时间/s');
+% ylabel('绳索长度/mm');
+% title('肩关节模块');
+% subplot(1,2,2);
+% plot(t(2:end),length_Line(5,2:end),'g',t(2:end),length_Line(6,2:end),'b','LineWidth',2);
+% legend('L5','L6');
+% xlabel('时间/s');
+% ylabel('绳索长度/mm');
+% title('肘关节模块');
+% 
+% % 正向运动学验证
+% x = zeros(1,k+1);
+% y = zeros(1,k+1);
+% z = zeros(1,k+1);
+% for i=2:k+1
+%     T01 = DH(0,0,0,q(1,i));
+%     T12 = DH(0,-pi/2,0,q(2,i)-pi/2);
+%     T23 = DH(0,pi/2,0,q(3,i));
+%     T34 = DH(LenUpperarm,-pi/2,0,q(4,i));
+%     T45 = DH(LenForeArm,0,0,0);
+%     AnsT05 = T01*T12*T23*T34*T45;
+%     x(i) = AnsT05(1,4);
+%     y(i) = AnsT05(2,4);
+%     z(i) = AnsT05(3,4);
+% end
+% figure();
+% scatter3(x(2:101), y(2:101), z(2:101),'k');
+% %hold on;
+% %scatter3(p(1,:),p(2,:),p(3,:),'r');
+% title('带入关节角度值验证直线');
+% xlabel('x/mm');
+% ylabel('y/mm');
+% zlabel('z/mm');
+% view(-30,10);
+% grid on;
+% 
+% figure();
+% scatter3(p(1,:),p(2,:),p(3,:),'r');
+% title('插补直线');
+% xlabel('x/mm');
+% ylabel('y/mm');
+% zlabel('z/mm');
+% view(-30,10);
+% grid on;
 
 %% 求解关节刚度
 % K_module = JF_SH(JF_EL)*K_NSU*JF_SH'(JF_EL')
@@ -1001,5 +954,61 @@ hold on;
 plot(x,K_shResult,'r--','LineWidth',1.5);
 ylabel('K_{sh}(N\cdotmm/rad)');
 legend('simulation result','experiment result');
+
+%% 采集到的传感器数据
+% number = 2666;
+% t = 1:number;
+% %t = 1:310;
+% data = xlsread("C:\Users\user\Desktop\20190506.xlsx");
+% tension = data(t,1:6);
+% angleElbow = data(t,7:9);
+% angleShoulder = data(t,10:12);
+% encoder = data(1:180,13:18);       
+% figure();
+% plot(tension);
+% figure();
+% plot(angleElbow);
+% figure();
+% plot(angleShoulder);
+% figure();
+% subplot(2,1,1);
+% plot(t,tension(:,5),t,tension(:,6));
+% legend("tension5","tension6");
+% subplot(2,1,2);
+% plot(t,angleElbow(:,3));
+% legend("elbow");
+% figure();
+% plotyy(t,tension(:,5),t,angleElbow(:,3));
+% 
+% %% 根据采集到的数据（绳5绳6的张力及肘关节角度）解算肘关节刚度
+% K_ELBOW = zeros(1,number);
+% for i=1:number
+%     q = [0,0,0,-angleElbow(i,3)*pi/180];
+%     [JF_SH,JF_EL] = TensiontoTorque(q);
+%     if tension(i,6)<0
+%         tension(i,6) = 0;
+%     end
+%     if tension(i,5)<0
+%         tension(i,5) = 0;
+%     end
+%     KCable_6 = nsu(tension(i,6));
+%     KCable_5 = nsu(tension(i,5));
+%     KCable_el = diag([KCable_5,KCable_6]);
+%     K_ELBOW(1,i) = JF_EL(3,:)*KCable_el*(JF_EL(3,:))';
+% end
+
+% theta = [0,0,0,0]*pi/180;
+% PlotUpperLimb(theta);
+
+% detaL5 = zeros(1,11);
+% k = 1;
+% % test no meaning 
+% for q=0:0.01:0.1
+%     theta = [0,0,0,q]*pi/180;
+%     length = CableLength(theta);
+%     detaL5(k) = length(5);
+%     k = k + 1;
+% end
+% detaL5 = detaL5 - detaL5(1);
 
 

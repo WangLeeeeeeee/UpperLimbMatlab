@@ -1,5 +1,5 @@
 % 关节空间轨迹规划
-function [torque,JF_SH,JF_EL] = trajectoryPlanOnJoint(qstart, qend, tf, qStep)
+function [Theta,torque,JF_SH,JF_EL] = trajectoryPlanOnJoint(qstart, qend, tf, qStep)
 % 上肢运动学参数
 global LenUpperarm
 global LenForeArm
@@ -39,7 +39,7 @@ for t=0:step:qTf
     torque(:,i) = Dynamic(Theta(:,i),Omega(:,i),Beta(:,i));
     %torque(:,i) = InverseDynamic(Theta(:,i),Omega(:,i),Beta(:,i));
 end
-t=0:0.05:qTf;
+t=0:qStep:qTf;
 hold on;
 h = plot3(Pos(1,:), Pos(2,:), Pos(3,:),'--b');
 title('末端轨迹');

@@ -21,6 +21,7 @@ T03 = T02*T23;
 T04 = T03*T34;
 T13 = T12*T23;
 T14 = T13*T34;
+T05 = T14*T45;
 % 创建矩阵存放变换矩阵，注意下标
 T = zeros(4,4,5,5);
 T(:,:,1,2) = T01;
@@ -121,6 +122,19 @@ for i = 1:4
         C(i) = C(i) - weight(j)*g*U(:,:,j,i)*r(:,j);
     end
 end
+% 计算外部负载力矩在关节上产生的关节力矩
+% 根据静力学公式：load_tau = Jacobi'*F
+T(:,:,1) = T01;
+T(:,:,2) = T12;
+T(:,:,3) = T23;
+T(:,:,4) = T34;
+T(:,:,5) = T45;
+Jacobi = Jacobi_dif(T);
+Jp = pinv(Jacobi);
+mload = 1.5;
+load_F = [mload*g(1:3)';0;0;0];
+load_J = Jp*load_F;
+load_J(4) = -load_J(4);
 % 计算关节力矩
-tau = D*beta + H + C;
+tau = D*beta + H + C + load_J;
 end
