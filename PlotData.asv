@@ -6,10 +6,10 @@
 num = xlsread("C:\Users\user\Desktop\肘关节前屈最小张力6N.xlsx"); % 注：文件路径太长会报错
 Tension_real = num(1:4008,1:6);
 angleElbow = num(1:607,7:9);
-angleShoulder = num(1:607,10:12);
-tension_x = 0:4007;
-angle_x = 0:606;
-t = 0:93;
+angleShoulder = num(1:751,10:12);
+tension_x = 0:4773;
+angle_x = 0:750;
+t = 0:89;
 figure();
 subplot(2,3,1);
 plot(tension_x,Tension_real(:,1),'r',t,Tension(1,:),'b');

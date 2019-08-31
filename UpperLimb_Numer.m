@@ -1,6 +1,6 @@
 %用数值法对上肢建模，求得结果为不带参数的数值，计算较快
-clc;
-clear;
+% clc;
+% clear;
 % theta1: 肩内外旋 theta1>0 外旋
 % theta2: 肩前屈
 % theta3: 肩外展
